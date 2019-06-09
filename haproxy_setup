@@ -1,0 +1,30 @@
+sudo apt-get install software-properties-common -y
+sudo add-apt-repository ppa:vbernat/haproxy-1.8 -y
+sudo apt-get update -y
+sudo apt-get install haproxy -y
+
+exit
+
+Append the following to /etc/haproxy/haproxy.cfg specifing the number of masters you have.
+
+frontend k8s-api
+   bind 0.0.0.0:6443
+   mode tcp
+   option tcplog
+   default_backend k8s-api
+
+backend k8s-api
+   mode tcp
+#   option tcplog
+   option tcp-check
+   balance roundrobin
+   default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
+
+       server 192.168.50.2  192.168.50.2:6443 check
+#       server 192.168.50.3  192.168.50.3:6443 check
+#       server 192.168.50.4  192.168.50.4:6443 check
+
+
+then 
+
+sudo systemctl restart haproxy
