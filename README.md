@@ -44,11 +44,10 @@ NAME         TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)        AGE
 :
 nginx        LoadBalancer   10.101.161.61   192.168.50.240   80:32564/TCP   32s
 
-From my mac
 
-curl 192.168.50.240
+
+
 on haproxy at .254 enable ip forwarding.
-
 vi /etc/sysctl.conf
 net.ipv4.ip_forward=1
 
@@ -62,6 +61,8 @@ On your mac, add a route to the same interface you selected for the haproxy exte
 
 sudo route add -net 192.168.50.0/24 ip.address.of.proxy -ifscope interface_you_selected
 
+
+curl 192.168.50.240
 
 Tear it all down
 
