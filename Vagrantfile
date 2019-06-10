@@ -12,6 +12,13 @@ sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_c
 service sshd restart
 # Set up an Environment Variable to specify the IP address the kubelet will use to work with the cluster.
 echo "export NODEIP=#{IP_NETWORK}$1" >> ~vagrant/.bash_profile
+#disable IPv6
+cat >> /etc/sysctl.conf << EOFSYSCTL
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+EOFSYSCTL
+sysctl -p
 
 #echo  ip route add #{EXTERNAL_NETWORK} via #{IP_NETWORK}254 dev enp0s8
 #ip route add #{EXTERNAL_NETWORK} via #{IP_NETWORK}254 dev enp0s8

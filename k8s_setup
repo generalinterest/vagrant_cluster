@@ -26,7 +26,8 @@ exit
 
 On master 1 - what about other masters?
 
-sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address 192.168.50.2  --apiserver-cert-extra-sans="192.168.50.2" 
+# sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address 192.168.50.2  --apiserver-cert-extra-sans="192.168.50.2" 
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address $NODEIP  --apiserver-cert-extra-sans="$NODEIP"
 # maybe extra options?  sudo kubeadm init --apiserver-cert-extra-sans="192.168.50.10"  --node-name k8s-master 
 
 mkdir -p $HOME/.kube
@@ -53,7 +54,7 @@ https://github.com/kubernetes/kubeadm/issues/203
 
 The Vagrantfile includes a script to add the correct IP address to use for the kubelet. It adds it to ~vagrant/bash_profile so you can use the env variable $NODEIP to use the correct address. 
 sudo sed -i "s/^KUBELET_KUBEADM_ARGS=/KUBELET_KUBEADM_ARGS=--node-ip=$NODEIP /" /var/lib/kubelet/kubeadm-flags.env
-sudo systemctl daemon-reload && systemctl restart kubelet
+sudo systemctl daemon-reload && sudo systemctl restart kubelet
 
 
 haproxy for access to multi-master setups.
