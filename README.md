@@ -2,8 +2,6 @@
 
 Work in progress
 
-For K8S install's - kubectl logs not working yet - need to investigate.
-
 install virtualbox and vagrant
 
 
@@ -27,7 +25,15 @@ sh /vagrant/k8s_setup
 
 Repeat for all workers.
 
+Try it out on your mac...
 
+The kube/config should be saved locally in the project directory as myconfig.  
+You can run it with
+
+kubectl --kubeconfig=myconfig cluster-info
+
+
+Load Balancing
 
 To have a load-balancer option for pods on this bare-matal installation, see ...
 https://metallb.universe.tf/
@@ -53,10 +59,18 @@ On your mac ...
 
 curl 192.168.50.240
 
+
+
+
+HA SETUP
+
 Add notes here for HA master configuration with haproxy
 
-Tear it all down
 
+
+
+
+Tear it all down
 
 vagrant destroy
 
