@@ -44,13 +44,16 @@ Need to have the workers join before they all start...
 kubectl get pods --all-namespaces -w
 
 worker's
-As the workers are also multi-homed hosts like the masters, we ened to specify the IP the kublet will use to communicate with the cluster as well
-
---apiserver-advertise-address=ip.of.worker
-
 To add a new worker, get the cluster join command on the master with ..
  kubeadm token create --print-join-command
-run join command with sudo with the --apiserver-advertise-address option.
+run join command with sudo
+
+As the workers are also multi-homed hosts like the masters, we ened to specify the IP the kubelet will use to communicate with the cluster as well
+https://github.com/kubernetes/kubeadm/issues/203
+
+The Vagrantfile includes a script to add the correct IP address to use for the kubelet. It adds it to ~vagrant/bash_profile so you can use the env variable $NODEIP to use the correct address. 
+sudo sed -i "s/^KUBELET_KUBEADM_ARGS=/KUBELET_KUBEADM_ARGS=--node-ip=$NODEIP /" /var/lib/kubelet/kubeadm-flags.env
+sudo systemctl daemon-reload && systemctl restart kubelet
 
 
 haproxy for access to multi-master setups.

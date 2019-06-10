@@ -1,6 +1,6 @@
 IP_NETWORK = "192.168.50."
 NUM_MASTERS = 1 #max 9
-NUM_WORKERS = 1 #starting from .11 up until you collide with the proxy's.
+NUM_WORKERS = 3 #starting from .11 up until you collide with the proxy's.
 NUM_PROXYS = 1  #starting from .254 down
 EXTERNAL_NETWORK = "192.168.10.0/24"
 
@@ -10,13 +10,14 @@ useradd kadmin -d /home/kadmin -G admin -G sudo -m
 echo kadmin:changeme | /usr/sbin/chpasswd
 sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
 service sshd restart
+# Set up an Environment Variable to specify the IP address the kubelet will use to work with the cluster.
+echo "export NODEIP=#{IP_NETWORK}$1" >> ~vagrant/.bash_profile
+
 #echo  ip route add #{EXTERNAL_NETWORK} via #{IP_NETWORK}254 dev enp0s8
 #ip route add #{EXTERNAL_NETWORK} via #{IP_NETWORK}254 dev enp0s8
 SCRIPT
 
 Vagrant.configure("2") do |config|
-
-#  config.vm.provision "shell", inline: "echo Hello"
 
   (1..NUM_MASTERS).each do |i|
     config.vm.define "master-#{i}" do |master|
@@ -33,9 +34,7 @@ Vagrant.configure("2") do |config|
         s.args   = "#{i+1}"
       end
       master.vm.provision "shell", inline: "sh /vagrant/k8s_setup"
-
     end
-
   end
 
   (1..NUM_PROXYS).each do |i|
@@ -49,9 +48,7 @@ Vagrant.configure("2") do |config|
         v.memory = 1024
         v.cpus = 2
       end
-#      proxy.vm.network "public_network"
       proxy.vm.provision "shell", inline: "sh /vagrant/haproxy_setup"
-
       proxy.vm.provision "shell",
         inline: "echo hello from proxy with private ip address #{IP_NETWORK}#{255-i}"
     end
