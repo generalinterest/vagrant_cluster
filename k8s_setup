@@ -44,9 +44,13 @@ Need to have the workers join before they all start...
 kubectl get pods --all-namespaces -w
 
 worker's
+As the workers are also multi-homed hosts like the masters, we ened to specify the IP the kublet will use to communicate with the cluster as well
+
+--apiserver-advertise-address=ip.of.worker
+
 To add a new worker, get the cluster join command on the master with ..
  kubeadm token create --print-join-command
-run join command with sudo
+run join command with sudo with the --apiserver-advertise-address option.
 
 
 haproxy for access to multi-master setups.

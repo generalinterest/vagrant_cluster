@@ -6,8 +6,12 @@ EXTERNAL_NETWORK = "192.168.10.0/24"
 
 $setRoute = <<-SCRIPT
 echo hello from master with private ip address #{IP_NETWORK}$1
-echo  ip route add #{EXTERNAL_NETWORK} via #{IP_NETWORK}254 dev enp0s8
-ip route add #{EXTERNAL_NETWORK} via #{IP_NETWORK}254 dev enp0s8
+useradd kadmin -d /home/kadmin -G admin -G sudo -m
+echo kadmin:changeme | /usr/sbin/chpasswd
+sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+service sshd restart
+#echo  ip route add #{EXTERNAL_NETWORK} via #{IP_NETWORK}254 dev enp0s8
+#ip route add #{EXTERNAL_NETWORK} via #{IP_NETWORK}254 dev enp0s8
 SCRIPT
 
 Vagrant.configure("2") do |config|
@@ -28,6 +32,7 @@ Vagrant.configure("2") do |config|
         s.inline = $setRoute
         s.args   = "#{i+1}"
       end
+      master.vm.provision "shell", inline: "sh /vagrant/k8s_setup"
 
     end
 
@@ -44,7 +49,9 @@ Vagrant.configure("2") do |config|
         v.memory = 1024
         v.cpus = 2
       end
-      proxy.vm.network "public_network"
+#      proxy.vm.network "public_network"
+      proxy.vm.provision "shell", inline: "sh /vagrant/haproxy_setup"
+
       proxy.vm.provision "shell",
         inline: "echo hello from proxy with private ip address #{IP_NETWORK}#{255-i}"
     end
@@ -67,6 +74,7 @@ Vagrant.configure("2") do |config|
         s.inline = $setRoute
         s.args   = "#{i+10}"
       end
+      worker.vm.provision "shell", inline: "sh /vagrant/k8s_setup"
     end
   end
 

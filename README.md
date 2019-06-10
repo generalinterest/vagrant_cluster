@@ -13,8 +13,14 @@ vagrant plugin install vagrant-disksize
 
 Currently have a problem with vagrant ssh timeing out.  Have a network issue to figure out when the vm has hostonly networking interface as well.
 
-The haproxy vm will be configured to route from the internal network to the external network.  When vgrant up runs, it will prompt when host network interface to bridge to.
-You have a choice to make.  It is configured for DHCP and needs to get an IP.
+Note that these Vagrant vm are multi-homed in that they have two network interfaces.  Becuase of that, the kubadm comands must specify the local network IP address for cluster communications.
+
+For the defauklt network on this project, the first master is at 192.168.50.2, so the kubeadm option is ...
+--apiserver-advertise-address 192.168.50.2
+
+The first worker is at 192.168.50.11, so when running kubeadm join, you need to specify
+--apiserver-advertise-address 192.168.50.11
+
 
 vagrant up
 
