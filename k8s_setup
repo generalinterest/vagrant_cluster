@@ -30,6 +30,9 @@ On master 1 - what about other masters?
 sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address $NODEIP  --apiserver-cert-extra-sans="$NODEIP"
 # maybe extra options?  sudo kubeadm init --apiserver-cert-extra-sans="192.168.50.10"  --node-name k8s-master 
 
+sudo sed -i "s/^KUBELET_KUBEADM_ARGS=/KUBELET_KUBEADM_ARGS=--node-ip=$NODEIP /" /var/lib/kubelet/kubeadm-flags.env
+sudo systemctl daemon-reload && sudo systemctl restart kubelet
+
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
@@ -37,8 +40,9 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 cp $HOME/.kube/config /vagrant/myconfig
 
 
+curl https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml | sed 's/--kube-subnet-mgr/--kube-subnet-mgr  \n        - --iface=enp0s8/' > mykube-flannel.yml
 
-kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+#kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 Just wait for pods to start. No need to reboot or find how to restart the master services.
 Need to have the workers join before they all start...
 
@@ -53,6 +57,7 @@ As the workers are also multi-homed hosts like the masters, we ened to specify t
 https://github.com/kubernetes/kubeadm/issues/203
 
 The Vagrantfile includes a script to add the correct IP address to use for the kubelet. It adds it to ~vagrant/bash_profile so you can use the env variable $NODEIP to use the correct address. 
+
 sudo sed -i "s/^KUBELET_KUBEADM_ARGS=/KUBELET_KUBEADM_ARGS=--node-ip=$NODEIP /" /var/lib/kubelet/kubeadm-flags.env
 sudo systemctl daemon-reload && sudo systemctl restart kubelet
 
