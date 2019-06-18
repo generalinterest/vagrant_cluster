@@ -1,7 +1,7 @@
 IP_NETWORK = "192.168.50."
-NUM_MASTERS = 1 #max 9
-NUM_WORKERS = 3 #starting from .11 up until you collide with the proxy's.
-NUM_PROXYS = 0  #starting from .254 down
+NUM_MASTERS = 3 #max 9
+NUM_WORKERS = 1 #starting from .11 up until you collide with the proxy's.
+NUM_PROXYS = 1  #starting from .254 down
 
 
 

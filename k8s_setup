@@ -42,11 +42,28 @@ cp $HOME/.kube/config /vagrant/myconfig
 
 curl https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml | sed 's/--kube-subnet-mgr/--kube-subnet-mgr  \n        - --iface=enp0s8/' > mykube-flannel.yml
 
+kubectl apply -f mykube-flannel.yml
+
 #kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 Just wait for pods to start. No need to reboot or find how to restart the master services.
 Need to have the workers join before they all start...
 
 kubectl get pods --all-namespaces -w
+
+
+multi-master setup
+
+#Had to upgrade to 1.14.3-00 for --experimental-upload-certs to be accepted
+
+sudo apt-get install -y docker-ce=18.06.1~ce~3-0~ubuntu kubelet=1.14.3-00 kubeadm=1.14.3-00 kubectl=1.14.3-00 --allow-change-held-packages
+
+sudo systemctl stop kubelet
+
+sudo kubeadm init --config=/vagrant/kubeadm-config.yml --experimental-upload-certs
+
+sudo sed -i "s/^KUBELET_KUBEADM_ARGS=/KUBELET_KUBEADM_ARGS=--node-ip=$NODEIP /" /var/lib/kubelet/kubeadm-flags.env
+sudo systemctl daemon-reload && sudo systemctl restart kubelet
+
 
 worker's
 To add a new worker, get the cluster join command on the master with ..
