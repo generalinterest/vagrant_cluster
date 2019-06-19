@@ -2,12 +2,69 @@ IP_NETWORK = "192.168.50."
 NUM_MASTERS = 3 #max 9
 NUM_WORKERS = 1 #starting from .11 up until you collide with the proxy's.
 NUM_PROXYS = 1  #starting from .254 down
-
+#etcd_cluster_string = "initial-cluster: "
+etcd_cluster_string = " "
+(1..NUM_MASTERS).each do |i|
+  etcd_cluster_string="#{etcd_cluster_string}master-#{i}=https://#{IP_NETWORK}#{i+1}:2380,"
+end  
+etcd_cluster_string="#{etcd_cluster_string}".chop
+#puts ("etcd_cluster_hosts:" + etcd_cluster_string )
 
 
 $setMasterPost = <<-MasterPostSCRIPT
 apt-get install nfs-kernel-server -y
+
+mkdir -p  /tmp/#{IP_NETWORK}$1
+cat << EOF > /tmp/kubeadmcfg.yaml
+apiVersion: "kubeadm.k8s.io/v1beta1"
+kind: ClusterConfiguration
+etcd:
+    local:
+        serverCertSANs:
+        - #{IP_NETWORK}$1
+        peerCertSANs:
+        - #{IP_NETWORK}$1
+        extraArgs:
+            initial-cluster:#{etcd_cluster_string}
+            initial-cluster-state: new
+            name: "master-$2"
+            listen-peer-urls: https://#{IP_NETWORK}$1:2380
+            listen-client-urls: https://#{IP_NETWORK}$1:2379
+            advertise-client-urls: https://#{IP_NETWORK}$1:2379
+            initial-advertise-peer-urls: https://#{IP_NETWORK}$1:2380
+EOF
+
+# create etcd certiificates
+
+#if this is the first node only do this and copy this to /vagrant for the other masters to pick it up.
+
+if [ -f /vagrant/.etcd/ca.crt ]
+then
+  echo "/vagrant/.etcd/ca.crt exists so copy it"
+  sudo mkdir -p  /etc/kubernetes/pki/etcd
+  sudo cp /vagrant/.etcd/ca.*  /etc/kubernetes/pki/etcd
+ else
+  echo "/vagrant/.etcd/ca.crt needs to be created"
+  sudo kubeadm init phase certs etcd-ca
+  sudo mkdir /vagrant/.etcd
+  sudo cp  /etc/kubernetes/pki/etcd/ca.*  /vagrant/.etcd
+fi
+
+
+
+
+sudo kubeadm init phase certs etcd-server --config=/tmp/kubeadmcfg.yaml
+sudo kubeadm init phase certs etcd-peer --config=/tmp/kubeadmcfg.yaml
+sudo kubeadm init phase certs etcd-healthcheck-client --config=/tmp/kubeadmcfg.yaml
+sudo kubeadm init phase certs apiserver-etcd-client --config=/tmp/kubeadmcfg.yaml
+#sudo cp -R /etc/kubernetes/pki /tmp/#{IP_NETWORK}$1/
+# cleanup non-reusable certificates
+#sudo find /etc/kubernetes/pki -not -name ca.crt -not -name ca.key -type f -delete
+
 MasterPostSCRIPT
+
+
+
 
 $setWorkerPost = <<-WorkerPostSCRIPT
 sudo apt-get install nfs-common -y
@@ -52,11 +109,11 @@ Vagrant.configure("2") do |config|
         s.inline = $setNode
         s.args   = "#{i+1}"
       end
+      master.vm.provision "shell", inline: "sh /vagrant/k8s_setup"
       master.vm.provision "shell" do |s|
         s.inline = $setMasterPost
-        s.args   = "#{i+1}"
+        s.args   = "#{i+1}", "#{i}"
       end
-      master.vm.provision "shell", inline: "sh /vagrant/k8s_setup"
     end
   end
 
