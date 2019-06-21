@@ -99,10 +99,10 @@ Vagrant.configure("2") do |config|
       master.vm.network "private_network", ip: IP_NETWORK+"#{i+1}"
       master.vm.hostname = "master-#{i}" 
       master.vm.box = "ubuntu/xenial64"
-      master.disksize.size = '20GB'
+      master.disksize.size = '10GB'
       master.vm.provider "virtualbox" do |v|
         v.name = "master-#{i}"
-        v.memory = 2048
+        v.memory = 1024
         v.cpus = 2
       end
       master.vm.provision "shell" do |s|

@@ -1,4 +1,6 @@
 #!sh
+#export K8S=1.13.5-00
+export K8S=1.14.3-00
 #on all nodes - masters and workers
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 
@@ -14,7 +16,7 @@ EOF
 
 sudo apt-get update
 
-sudo apt-get install -y docker-ce=18.06.1~ce~3-0~ubuntu kubelet=1.13.5-00 kubeadm=1.13.5-00 kubectl=1.13.5-00
+sudo apt-get install -y docker-ce=18.06.1~ce~3-0~ubuntu kubelet=$K8S kubeadm=$K8S kubectl=$K8S
 
 sudo apt-mark hold docker-ce kubelet kubeadm kubectl
 
@@ -52,7 +54,7 @@ kubectl get pods --all-namespaces -w
 
 
 multi-master setup
-
+# https://github.com/kubernetes/kubeadm/issues/1438
 #Had to upgrade to 1.14.3-00 for --experimental-upload-certs to be accepted
 
 sudo apt-get install -y docker-ce=18.06.1~ce~3-0~ubuntu kubelet=1.14.3-00 kubeadm=1.14.3-00 kubectl=1.14.3-00 --allow-change-held-packages
@@ -107,3 +109,32 @@ backend k8s-api
 Then  ...
 
 sudo systemctl restart haproxy
+
+# for multi-master with etcd on each of the three masters
+# https://github.com/kubernetes/kubeadm/issues/1438
+# so after running the script etcd_service you have to remove the
+#/etc/systemd/system/kubelet.service.d/20-etcd-service-manager.conf
+# do you need that service script to bring up etcd the first time, what about subsequent reboots??
+
+sudo /vagrant/etcd_service 
+sudo mv /etc/systemd/system/kubelet.service.d/20-etcd-service-manager.conf /tmp
+
+
+sudo kubeadm init --config /vagrant/kubeadm-config.yaml --experimental-upload-certs --ignore-preflight-errors=all -v 256
+
+sudo sed -i "s/^KUBELET_KUBEADM_ARGS=/KUBELET_KUBEADM_ARGS=--node-ip=$NODEIP /" /var/lib/kubelet/kubeadm-flags.env
+sudo systemctl daemon-reload && sudo systemctl restart kubelet
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+cp $HOME/.kube/config /vagrant/myconfig
+
+#maybe wait to install flannel until allthe nodes are up?
+
+curl https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml | sed 's/--kube-subnet-mgr/--kube-subnet-mgr  \n        - --iface=enp0s8/' > mykube-flannel.yml
+
+kubectl apply -f mykube-flannel.yml
+
+

@@ -1,0 +1,20 @@
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: ClusterConfiguration
+kubernetesVersion: stable
+controlPlaneEndpoint: "192.168.50.254:6443"
+etcd:
+    external:
+        endpoints:
+        - https://192.168.50.2:2379
+        - https://192.168.50.3:2379
+        - https://192.168.50.4:2379
+        caFile: /etc/kubernetes/pki/etcd/ca.crt
+        certFile: /etc/kubernetes/pki/apiserver-etcd-client.crt
+        keyFile: /etc/kubernetes/pki/apiserver-etcd-client.key
+apiServer:
+#  extraArgs:
+#    advertise-address: 192.168.50.2
+  certSANs:
+  - "192.168.50.2"
+networking:
+  podSubnet: 10.244.0.0/16

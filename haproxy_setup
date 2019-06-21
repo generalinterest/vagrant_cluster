@@ -30,8 +30,8 @@ backend k8s-api
    default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
 
        server 192.168.50.2  192.168.50.2:6443 check
-#       server 192.168.50.3  192.168.50.3:6443 check
-#       server 192.168.50.4  192.168.50.4:6443 check
+       server 192.168.50.3  192.168.50.3:6443 check
+       server 192.168.50.4  192.168.50.4:6443 check
 
 
 then 
