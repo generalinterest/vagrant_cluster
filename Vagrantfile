@@ -1,6 +1,6 @@
 IP_NETWORK = "192.168.50."
 NUM_MASTERS = 3 #max 9
-NUM_WORKERS = 1 #starting from .11 up until you collide with the proxy's.
+NUM_WORKERS = 2 #starting from .11 up until you collide with the proxy's.
 NUM_PROXYS = 1  #starting from .254 down
 #etcd_cluster_string = "initial-cluster: "
 etcd_cluster_string = " "
@@ -11,8 +11,26 @@ etcd_cluster_string="#{etcd_cluster_string}".chop
 #puts ("etcd_cluster_hosts:" + etcd_cluster_string )
 
 
+myhosts = ""
+(1..NUM_MASTERS).each do |i|
+  myhosts="#{myhosts}#{IP_NETWORK}#{i+1}	 master-#{i}\n"
+end  
+puts ("myhosts:" + myhosts )
+(1..NUM_PROXYS).each do |i|
+  myhosts="#{myhosts}#{IP_NETWORK}#{255-i}	 proxy-#{i}\n"
+end  
+puts ("myhosts:" + myhosts )
+(1..NUM_WORKERS).each do |i|
+  myhosts="#{myhosts}#{IP_NETWORK}#{i+10}	 worker-#{i}\n"
+end  
+#puts ("myhosts:" + myhosts )
+
+
+
 $setMasterPost = <<-MasterPostSCRIPT
 apt-get install nfs-kernel-server -y
+
+#create a kubeadm config to bring up etcd on the local k8s network
 
 mkdir -p  /tmp/#{IP_NETWORK}$1
 cat << EOF > /tmp/kubeadmcfg.yaml
@@ -82,6 +100,9 @@ service sshd restart
 # Set up an Environment Variable to specify the IP address the kubelet will use to work with the cluster.
 echo "export NODEIP=#{IP_NETWORK}$1" >> ~vagrant/.bash_profile
 
+echo "#{myhosts}" >> /etc/hosts 
+sed -i 's/127.0.1.1.*/127.0.1.1 localhost/' /etc/hosts
+
 #disable IPv6
 cat >> /etc/sysctl.conf << EOFSYSCTL
 net.ipv6.conf.all.disable_ipv6 = 1
@@ -125,7 +146,8 @@ Vagrant.configure("2") do |config|
       proxy.vm.box = "ubuntu/xenial64"
       proxy.vm.provider "virtualbox" do |v|
         v.name = "proxy-#{i}"
-        v.memory = 1024
+#        v.memory = 1024
+        v.memory = 512
         v.cpus = 2
       end
       proxy.vm.provision "shell", inline: "sh /vagrant/haproxy_setup"

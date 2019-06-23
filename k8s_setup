@@ -4,6 +4,9 @@ export K8S=1.14.3-00
 #on all nodes - masters and workers
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 
+#TODO https://v1-14.docs.kubernetes.io/docs/setup/cri/ 
+#     and complete Docker configuration.
+
 sudo add-apt-repository    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
    $(lsb_release -cs) \
    stable"
@@ -26,12 +29,14 @@ sudo sysctl -p
 
 exit
 
+SINGLE MASTER:
 On master 1 - what about other masters?
 
 # sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address 192.168.50.2  --apiserver-cert-extra-sans="192.168.50.2" 
 sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address $NODEIP  --apiserver-cert-extra-sans="$NODEIP"
 # maybe extra options?  sudo kubeadm init --apiserver-cert-extra-sans="192.168.50.10"  --node-name k8s-master 
 
+# hack to run on Vagrant vm's where the Default NAT has a route, but the private network for the cluster does not.
 sudo sed -i "s/^KUBELET_KUBEADM_ARGS=/KUBELET_KUBEADM_ARGS=--node-ip=$NODEIP /" /var/lib/kubelet/kubeadm-flags.env
 sudo systemctl daemon-reload && sudo systemctl restart kubelet
 
@@ -41,33 +46,20 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 cp $HOME/.kube/config /vagrant/myconfig
 
-
+#Install the CNI - Flannel.
+#kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+# hack to run on Vagrant VM's to specify the private cluster network interface for the overlay network.
 curl https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml | sed 's/--kube-subnet-mgr/--kube-subnet-mgr  \n        - --iface=enp0s8/' > mykube-flannel.yml
 
 kubectl apply -f mykube-flannel.yml
 
-#kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 Just wait for pods to start. No need to reboot or find how to restart the master services.
 Need to have the workers join before they all start...
 
 kubectl get pods --all-namespaces -w
 
 
-multi-master setup
-# https://github.com/kubernetes/kubeadm/issues/1438
-#Had to upgrade to 1.14.3-00 for --experimental-upload-certs to be accepted
-
-sudo apt-get install -y docker-ce=18.06.1~ce~3-0~ubuntu kubelet=1.14.3-00 kubeadm=1.14.3-00 kubectl=1.14.3-00 --allow-change-held-packages
-
-sudo systemctl stop kubelet
-
-sudo kubeadm init --config=/vagrant/kubeadm-config.yml --experimental-upload-certs
-
-sudo sed -i "s/^KUBELET_KUBEADM_ARGS=/KUBELET_KUBEADM_ARGS=--node-ip=$NODEIP /" /var/lib/kubelet/kubeadm-flags.env
-sudo systemctl daemon-reload && sudo systemctl restart kubelet
-
-
-worker's
+WORKER's
 To add a new worker, get the cluster join command on the master with ..
  kubeadm token create --print-join-command
 run join command with sudo
@@ -81,9 +73,8 @@ sudo sed -i "s/^KUBELET_KUBEADM_ARGS=/KUBELET_KUBEADM_ARGS=--node-ip=$NODEIP /" 
 sudo systemctl daemon-reload && sudo systemctl restart kubelet
 
 
+PROXY
 haproxy for access to multi-master setups.
-Also configuring to act as a Router form the nodes network to the ourside network.  Note the the Nodes have a default route via their NAT interface which covers all routes not attached ar routed via the haproxy router.
-
 
 sh /vagrant/haproxy_setup
 
@@ -110,6 +101,7 @@ Then  ...
 
 sudo systemctl restart haproxy
 
+MULTI-MASTER
 # for multi-master with etcd on each of the three masters
 # https://github.com/kubernetes/kubeadm/issues/1438
 # so after running the script etcd_service you have to remove the
@@ -117,6 +109,7 @@ sudo systemctl restart haproxy
 # do you need that service script to bring up etcd the first time, what about subsequent reboots??
 
 sudo /vagrant/etcd_service 
+#wait for etcd to form it's quorum before removing the file, but remove it before the kubeadm init for the api service.
 sudo mv /etc/systemd/system/kubelet.service.d/20-etcd-service-manager.conf /tmp
 
 

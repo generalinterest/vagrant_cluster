@@ -3,10 +3,8 @@ sudo add-apt-repository ppa:vbernat/haproxy-1.8 -y
 sudo apt-get update -y
 sudo apt-get install haproxy -y
 
-exit
 
-Append the following to /etc/haproxy/haproxy.cfg specifing the number of masters you have.
-
+sudo cat >> /etc/haproxy/haproxy.cfg  <<EOF
 listen stats # Define a listen section called "stats"
   bind :9000 # Listen on localhost:9000
   mode http
@@ -32,12 +30,11 @@ backend k8s-api
        server 192.168.50.2  192.168.50.2:6443 check
        server 192.168.50.3  192.168.50.3:6443 check
        server 192.168.50.4  192.168.50.4:6443 check
+EOF
 
-
-then 
 
 sudo systemctl restart haproxy
 
-the haproxy status is then available at 
-http://192.168.50.254:9000/haproxy_stats
+#the haproxy status is then available at 
+#http://192.168.50.254:9000/haproxy_stats
 
